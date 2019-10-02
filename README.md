@@ -9,3 +9,5 @@ Parts of this document are still incomplete/inaccurate since I have been the onl
 So, feel free to send me a pull request! (please send me both "template.rmd" and "template.pdf")
 
 Dependeing on the number of requests, I might consider the creation of Python version function templates.
+
+If you need additional study resourses, please check out [Practice Midterms](https://github.com/Gostatistics/UCLA_Statistics_Practice_Midterms)
