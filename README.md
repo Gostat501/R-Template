@@ -7,3 +7,5 @@ Please check out the [template.pdf](https://github.com/Gostatistics/R-Template/b
 Parts of this document are still incomplete/inaccurate since I have been the only contributor to this document as of 10/2/2019...
 
 So, feel free to send me a pull request! (please send me both "template.rmd" and "template.pdf")
+
+Dependeing on the number of requests, I might consider the creation of Python version function templates.
