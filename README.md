@@ -1,6 +1,6 @@
 # R-Template
 
-The collection of the popular data visualization, data manupilation, machine learning packages and functions available for programming language: R, and their brief descriptions of the algorithms and the applications.
+The collection of the popular data visualization, data manipulation, machine learning packages and functions available for programming language: R, and their brief descriptions of the algorithms and the applications.
 
 Please check out the [template.pdf](https://github.com/Gostatistics/R-Template/blob/master/template.pdf)
 
