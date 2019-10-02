@@ -1,4 +1,4 @@
-# Function-Templates-R
+# R-Template
 
 The collection of the popular data visualization, data manupilation, machine learning packages and functions available for programming language: R, and their brief descriptions of the algorithms and the applications.
 
