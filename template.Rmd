@@ -1,0 +1,2408 @@
+---
+title: "Statistics Templates"
+author: "Go Ito"
+date: "August 9th, 2019"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+    latex_engine: xelatex
+    number_sections: no
+    toc: yes
+    toc_depth: 3
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+header-includes:
+- \usepackage{enumitem}
+- \usepackage{amsmath,amssymb,amsthm, amsfonts}
+- \usepackage{fontspec}
+- \usepackage{multirow}
+- \geometry{left=1in,top=0.75in,right=1in,bottom=.75in,textheight=8.5in, headheight=0.25in,headsep=0.125in,
+  footskip=0.25in, portrait, twoside=true}
+- \usepackage{fancyhdr}
+- \pagestyle{fancy}
+- \rhead{template}
+- \lhead{template}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width=5, fig.height=4, warning = FALSE, message= FALSE, out.width = '50%', comment=NA)
+```
+
+\newpage
+
+# Package Installation
+
+```{r}
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("tidyverse")
+#install.packages("readxl")
+#install.packages("alr3")
+#install.packages("MASS")
+#install.packages("ISLR")
+#install.packages("class")
+#install.packages("caret")
+#install.packages("e1071")
+#install.packages("leaps")
+#install.packages("boot")
+#install.packages("crossval")
+#install.packages("resample")
+#install.packages("glmnet")
+#install.packages("pls")
+#install.packages("splines")
+#install.packages("gam")
+#install.packages("akima")
+#install.packages("tree")
+#install.packages("randomForest")
+#install.packages("nnet")
+#install.packages("NeuralNetTools")
+#install.packages("RSQLite")
+#install.packages("Hmisc")
+#install.packages("pwr")
+#install.packages("agricolae")
+#install.packages("crossdes")
+#install.packages("phia")
+#install.packages("gplots")
+#install.packages("psych")
+```
+
+
+# Generic library to use
+
+```{r, results="hide"}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(readxl)
+library(MASS)
+library(car)
+```
+
+# Useful functions
+
+```{r}
+traindex = function(df, trainn = nrow(df)-nrow(df)/10){
+  n = nrow(df)
+  return(sample(1:n,trainn, replace=F))
+}
+```
+
+
+
+\newpage
+
+# Data Reading
+
+## Built in data
+
+```{r}
+head(iris)
+head(mtcars)
+```
+
+## .txt file
+
+```{r}
+cleaning = read.table("cleaning.txt", header=T)
+head(cleaning)
+```
+
+## .csv file
+
+```{r}
+Heart = read.csv("Heart.csv", header=T)
+head(Heart)
+```
+
+## .xls / .xlsx file
+
+```{r, results="hide"}
+library(tidyverse)
+library(readxl)
+```
+
+```{r}
+xlsxdata = read_excel("sample.xlsx")
+xlsxdata
+```
+
+## .jason file
+
+## SQL
+
+```{r, results="hide"}
+#library(dbplyr)
+#library(RSQLite)
+#dir.create("data", showWarnings = FALSE)
+#download.file(url = "https://ndownloader.figshare.com/files/2292171",destfile = "data/portal_mammals.sqlite", mode = "wb")
+#mammals = DBI::dbConnect(RSQLite::SQLite(), "data/portal_mammals.sqlite")
+```
+
+```{r}
+#SQLdata = tbl(mammals, sql("SELECT year, species_id, plot_id FROM surveys"))
+#head(SQLdata)
+```
+
+\newpage
+
+# Exploratory Analysis
+
+Check List:
+
+- General distribution of the object, widely spread? Skewed? Any outliers?
+
+- Check for NA, NaN, or any other missing values equivalent.
+
+
+## Summary
+
+- Check for the basic summary: mean, median, min, max, frequency.
+
+- For frequency, we prefer that all category data have sufficient number of data,
+
+- Check for the correlation among variables.
+
+
+```{r}
+summary(iris)
+cor(iris[,-5])
+
+library(psych)
+pairs.panels(iris)
+pairs(iris)
+```
+
+
+
+
+## Histogram / Distributions
+
+```{r}
+# easiest
+hist(iris$Sepal.Length)
+#
+plot(density(iris$Sepal.Length), col="red")
+
+# much easier for exploratory analysis
+ggplot(data = iris) + geom_bar(mapping = aes(x = Sepal.Length))
+ggplot(data=iris) + geom_histogram(mapping = aes(x=Sepal.Length))
+ggplot(data=iris, mapping = aes(x=Sepal.Length, colour = Species)) + geom_freqpoly()
+ggplot(Heart) + geom_density(mapping=aes(x=MaxHR, color=as.character(Sex)))
+
+```
+
+
+- Which values are most common among which cateogry?
+
+- Which values are rare, or odd? Could it be an outlier, or mis-interpreted?
+
+- Any unusual patters? Can you explain it?
+
+- Why setosa tends to have smaller Sepal.Length than virginica?
+
+## Boxplots
+
+```{r}
+ggplot(data = iris) + geom_boxplot(mapping = aes(x=Species, y=Sepal.Length, fill=Species))
+```
+
+## Plots of two variables
+
+```{r}
+ggplot(data=iris) + geom_point(aes(x=Sepal.Length, y=Sepal.Width, colour=Species))
+```
+
+## Interaction Plots
+
+```{r}
+ggplot(data=iris) + aes(x = Sepal.Length, y = Sepal.Width, colour = Species) +
+  geom_point(color = "grey") +
+  geom_smooth(method = "lm")
+```
+
+
+- Often used in time series
+
+```{r}
+interaction.plot(x.factor = iris$Sepal.Length, trace.factor = iris$Species, response = iris$Sepal.Width, lwd=2, col = 1:3)
+```
+
+\newpage
+
+# Data Analysis, Prediction, and Classification
+
+## Simple Linear Regression
+
+### Assumption Check
+
+- 1. Average is 0?
+
+- 2. Standarized residual (more informative when leverage points exist because errors can show const var while residuals don't / how many estimated std deviations any point away from the fitted regression model / if outside -2 to 2, outlier), check for constant variance primarily here!
+
+- 3. Normality (straight line) holds? For each $x$, see if corresponding $y$ follow normal distributions where mean is fitted line.
+
+- 4. Any outliers, leverage points(influential to fitted model / how predicted y change if removed / bigger than $4/n$), outside Cook's distance ($D_i=\frac{r_i^2}{2}*\frac{h_ii}{1-h_ii}$ / $D_i>4/(n-2)$?
+
+- If any of the assumptions violated, any further inferences are invalidated.
+
+```{r}
+model1 = lm(Sepal.Width~Sepal.Length, data=iris)
+plot(model1)
+
+head(lm.influence(model1)$hat)
+```
+
+### Statistical Inference
+
+- Shape of the plots, linear? quadratic? exponential?
+
+```{r}
+plot(Sepal.Width~Sepal.Length, data=iris);abline(model1)
+
+# Equivalently this, but much more complicated
+predicted1 = data.frame(Sepal.Length=iris$Sepal.Length, predicted = predict(model1, iris))
+ggplot(data=iris) + geom_point(aes(x=Sepal.Length,y=Sepal.Width))+ geom_line(color='red',data = predicted1, aes(x=Sepal.Length, y=predicted))
+```
+
+- Coefficients significant? P-value? Standard Error?
+
+- Positive? Negative? Its strength?
+
+- "One unit increase in X results in $\beta_1$ much increase in Y"
+
+- $\hat{\beta_1} = r*\frac{S_Y}{S_X}=\frac{\sum^n(X-\bar{X})(Y-\bar{Y})}{\sum^n(Y-\bar{Y})^2}$
+
+- $\hat{\beta_0} = \bar{Y}-\hat{\beta_1}\bar{X}$
+
+- $e\sim N(0,\sigma^2)$
+
+- $S^2 = \frac{\sum^n(Y-\hat{Y})^2}{n-2}$
+
+- $se(\hat{\beta_0})^2=S^2 (\frac{1}{n}+\frac{(x^*-\bar{x})^2}{\sum^n(x-\bar{x})^2})$
+
+- $se(\hat{\beta_1})^2=\frac{S^2}{\sum^n(X-\bar{X})^2}$
+
+- $SSE=\sum^n(y-\hat{y})^2$
+
+- $SSR=\sum^n(\hat{y}-\bar{y})^2$
+
+- $SST=\sum^n(y-\bar{y})^2$
+
+- $R^2= 1-\frac{SSE}{SST}$
+
+- $F=\frac{SST-SSE/1}{SST/n-2}=t^2=(\frac{\hat{\beta_1}}{se(\hat{\beta_1})})^2$
+
+```{r}
+summary(model1)
+var(iris$Sepal.Length)
+```
+
+- Confidence Interval: $\hat{y}\pm t_{n-2}*S\sqrt{\frac{1}{n}+\frac{(x^*-\bar{x})^2}{\sum^n(x-\bar{x})^2}}$
+
+- CI ex) $\hat{y}\pm2.06*0.4343 \sqrt{\frac{1}{150}+\frac{(5.0-5.843333)^2}{149*0.6856935}}$
+
+- Prediction Interval: $\hat{y}\pm t_{n-2}*S\sqrt{1+\frac{1}{n}+\frac{(x^*-\bar{x})^2}{\sum^n(x-\bar{x})^2}}$
+
+- PI ex) $\hat{y}\pm2.06*0.4343 \sqrt{1+\frac{1}{150}+\frac{(5.0-5.843333)^2}{149*0.6856935}}$
+
+### ANOVA SLR
+
+|Variation|df|SS|MS|F|
+|---|---|--|--|---|-----------|
+|Regression|1|SSR|SSR/1|SSR/(SSE/(n-2))|
+|Residual/Error| n-2| SSE| SSE/n-2||
+|Total|n-1|SST|||
+
+```{r}
+anova(model1)
+```
+
+\newpage
+
+### Transformation
+
+#### Inverse response transformation 
+
+- $g^{-1}(y)=\beta_0+\beta_1x+\epsilon$, e.g. $g(y)=exp(y), g^{-1}(y)=log(y)$, $g(y)=y^\lambda, g^{-1}(y)=y^{1/\lambda}$, make sure response only!
+
+- Pick $\lambda$ that has the lowest RSS/SSE.
+
+```{r}
+library(alr3)
+inverseResponsePlot(model1,key=TRUE)
+```
+
+#### Box-cox transformation
+
+- Try to make vairables close to normally distributed. For SLR, maximize likelihood = minimize $SSE(\lambda)=\sum(y^\lambda-\hat{\beta_0}-\hat{\beta_1}x)^2$. Don't assume normality of $x$.
+
+- Pick the $\lambda$ = `Rounded Pwr`
+
+```{r}
+library(MASS)
+model1bc = powerTransform(model1)
+summary(model1bc)
+```
+
+#### Log transformation
+
+- Take logarithm on response or predictors or both. $\log(y_2/y_1)=\beta_1*\log(x_2/x_1)$. "One percentage change in X results in $\beta_1$ percentage change in Y".
+
+- Transform variables according to `Rounded Pwr`, e.g. `Y1=log(Y1)`, `Y2=Y2^1`.
+
+- `Rounded Pwr = 0` means log transform.
+
+- e.g. if `Rounded Pwr = 0.5` for `Y3`, `Y3=sqrt(Y3)`
+
+```{r}
+model1pt = powerTransform(cbind(iris$Sepal.Length,iris$Sepal.Width)~1) 
+summary(model1pt)
+```
+
+\newpage
+
+### Weighted Least Square
+
+- When constant variance is violated, assigning a reasonable weigth to each variance could fix the problem.
+
+- Assign inversely proportional weights to the corresponding variances.
+
+- $SSE = \sum^n(Y-(\hat{\beta_0}+\hat{\beta_1}X))^2$
+
+- $WSSE = \sum^nw_i(Y-(\hat{\beta_0}+\hat{\beta_1}X))^2$ with $\epsilon\sim N(0,\sigma^2/w_i)$
+
+- Then, $var(\sqrt{w_i}\epsilon_i)=\sigma^2$
+
+- The weights are assumed to known, so the estimated weights are used. Thus, this method works when the weights can be estimated precisely relative to one another.
+
+- Sensitive to outliers, and possibly increase the influence of them.
+
+```{r}
+model2 = lm(Rooms~Crews, data=cleaning)
+model2w = lm(Rooms~Crews, weights=1/StdDev^2, data=cleaning)
+
+plot(cleaning$Crews, model2$residuals, main="SLR");abline(h=0);plot(cleaning$Crews, model2w$residuals*(1/cleaning$StdDev), main="WSLR");abline(h=0)
+```
+
+\newpage
+
+## Multiple Linear Regression
+
+### Assumptions
+
+- The response variable and predicotrs are linearly related.
+
+- Error terms are normally distributed.
+
+- Error terms have a constant variance.
+
+- Check the outliers, leverage points, and influential points.
+
+- Check if the predictors are highly correlated (multicolliniearity).
+
+- Check the diagonal elements of the hat matrix $\mathbf{H}=\mathbf{X}(\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T$. If $h_{ii} > 2*\bar{h}=2*\frac{p+1}{n}$, the point is consider to be a leverage points for MLR.
+
+- Standarized residual $r_i = \frac{\hat{e_i}}{S\sqrt{1-h_{ii}}}$ where $S^2=\frac{SSE}{n-(p+1)}$. If $r_i$ is outside $(-2,2)$, it's considered to be an outlier.
+
+- Likewise, check for Cook's distance $D_i$. If greater than $4/(n-2)$, the point is an influential point for MLR.
+
+- The diagnosis plots show if the entire model is valid.
+
+```{r}
+m = lm(MaxHR~Age+Chol+RestBP+Oldpeak, data=Heart)
+pairs(MaxHR~Age+Chol+RestBP+Oldpeak, data=Heart)
+plot(m)
+```
+
+```{r}
+stdres1 = rstandard(m)
+lev1 = hatvalues(m)
+cookd1 = cooks.distance(m)
+
+# outliers
+which(abs(stdres1)>2)
+# leverage ( hii > 2*(p+1)/n)
+which(lev1 > 2*(4+1)/nrow(Heart))
+# influential points (Di > 4/(n-2))
+which(cookd1 > 4/(nrow(Heart)-2))
+```
+
+- When strong correlations exist among the predictor variables, the following issues may arise:
+
+- 1. F-test results will be highly significan, when very few predictors are significant.
+
+- 2. Some of the coefficients in the model show the opposite sign than expected.
+
+- Variance Inflation Factor (VIF) : $\frac{1}{1-R_j^2}$, where $R_j^2$ denote the value of $R^2$ obtained from the regression of $x_j$ on the other$x$'s. Note that $var(\beta_j)=\frac{1}{1-R_j^2}*\frac{\sigma^2}{(n-1)S_{x_j}^2}$. If $VIF_j>5$, then $\hat{\beta_j}$ is poorly estimated due to multicollinearity.
+
+- There are several ways to handle multicollinearity. One way is to delete the redundant predictors (highly correlated predictors).
+
+- Another way to handle multicollenearity is to make the dataset uncorrelated i.e. linearly independend. The method is called Principle Component Analysis.
+
+```{r}
+library(car)
+vif(m)
+```
+
+
+### Statistical Inference
+
+- $\mathbf{Y} = \mathbf{X}\mathbf{\beta}+\mathbf{\epsilon}$
+
+- $SSE = (\mathbf{Y}-\mathbf{X}\hat{\mathbf{\beta}})^T(\mathbf{Y}-\mathbf{X}\hat{\mathbf{\beta}})=||\mathbf{Y}-\mathbf{X}\hat{\mathbf{\beta}}||^2$
+
+- $\hat{\beta}=(\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}\mathbf{Y}$
+
+- $\mathbf{X}=(1,X_1,X_2,\dots,X_p)^T$
+
+- $S^2=\frac{SSE}{n-p-1}$
+
+- $T_i=\frac{\hat{\beta_i}}{se(\hat{\beta_i})}\sim t_{n-p-1}$ for $H_0:\beta_i=0$
+
+- $R^2 = 1-\frac{SSE}{SST}$, but always increase as $p$ increase. 
+
+- $R^2_{adj} = 1 - \frac{SSE/(n-p-1)}{SST/(n-1)}$
+
+- $F=\frac{(SST-SSE)/p}{SSE/(n-p-1)}\sim F_{p,(n-p-1)}$ for $H_0:\beta_1=\dots=\beta_p=0$
+
+```{r}
+summary(m)
+
+# or
+Y = Heart$MaxHR
+X = cbind(1,Heart$Age, Heart$Chol, Heart$RestBP, Heart$Oldpeak)
+beta = solve(t(X)%*%X)%*%t(X)%*%Y;beta
+```
+
+\newpage
+
+### Model Diagnosis : Added Variable Plot
+
+- Added variable plot enable us to visually assess the effect of each predictors, having adjusted for the effects of other predictors.
+
+- In stead of the model $\mathbf{Y}=\mathbf{X}\mathbf{\beta}+\epsilon$, consider $\mathbf{Y}=\mathbf{X}\mathbf{\beta}+\mathbf{Z}\mathbf{\alpha}+\epsilon$.
+
+- $\mathbf{Z}=\mathbf{X}\mathbf{\delta}+\mathbf{\epsilon}$ and $n\times 1$ vector. If the model with $\mathbf{Z}$ fits better to the data, then the added variable plot should produce points randomly scattered around a line through thte origin with slope $\hat{\alpha}$
+
+```{r}
+library(car)
+m = lm(iris$Sepal.Width~iris$Sepal.Length+iris$Petal.Length+iris$Petal.Width)
+par(mfrow=c(2,2))
+avPlot(m,variable=iris$Sepal.Length, ask=F)
+avPlot(m,variable=iris$Petal.Length, ask=F)
+avPlot(m,variable=iris$Petal.Width, ask=F)
+par(mfrow=c(1,1))
+```
+
+\newpage
+
+### ANOVA MLR
+
+|Variation|df|SS|MS|F|
+|-----|---|---|---|---|-----------|
+|Regression|p|SSR|SSR/p|(SST-SSE)/p/(SSE/(n-2))|
+|Residual/Error| n-p-1| SSE| SSE/n-p-1||
+|Total|n-1|SST|||
+
+```{r}
+anova(model2)
+```
+
+### Nested Model and Partial F-test
+
+$$\begin{aligned}
+H_o &: \beta_1=\dots=\beta_k=0 \quad (\text{k < p i.e. reduced model})\\
+&\text{vs.}\\
+H_a &: \beta_1=\dots=\beta_p=0 \quad (\text{i.e. full model})\\
+\end{aligned}$$
+
+- $F = \frac{SSE_{reduced}-SSE_{full}/(df_{reduced}-df_{full})}{SSE_{full}/df_{full}}=\frac{SSE_{reduced}-SSE_{full}/k}{SSE_{full}/df_{full}}$
+
+- Although here the term "reduced" and "full" are used, make sure that "full" could already be a reduced model i.e. $n-p-1 \ge df_{full}$.
+
+```{r}
+model2reduced = lm(MaxHR~Age+RestBP+Oldpeak, data=Heart)
+anova(model2,model2reduced)
+```
+
+- Here, F-stats is not significant i.e. failed to reject null, reduced model is better.
+
+\newpage
+
+### ANCOVA (Analysis of Covariance)
+
+- Suppose we have a categorical variable with K levels. ANCOVA allows a categorical variable to be included in a linear model. Technically speaking, ANOVA is a sub-technique of ANCOVA where we have a hidden categorical variable with only 1 level.
+
+- There could be multiple categorical variable. If that's the case, the number of levels would be $K_1\times K_2$, and might require more sample size.
+
+- Use variable selections (e.g. partial F-test) to reduce the number of predictors.
+
+- $Y=\beta_0+\beta_1x+\beta_2 d+\beta_3(d\times x)+\epsilon$ if $d\in \{0,1\}$
+
+- $SSB=\sum^k_{i=1}\sum^{n_k}_{j=1}(\bar{Y_i}-\bar{\bar{Y}})^2$, similar to SSE
+
+- $SSW = \sum^k_{i=1}\sum^{n_k}_{j=1}(Y_{ij}-\bar{Y_i})^2$, similar to SSR
+
+- $SST = \sum^k_{i=1}\sum^{n_k}_{j=1}(Y_{ij}-\bar{\bar{Y}})^2$
+
+- $H_o: \mu_1=\mu_2=\dots=\mu_K$ vs. $H_a:$ at least one of the group means is different
+
+
+|Variation|df|SS|MS|F|
+|-----|---|---|---|---|-----------|
+|Between|k-1|SSB|SSB/(k-1)|SSB/(k-1)/(SSW/(n-k))|
+|Within| n-k| SSW| SSW/n-k||
+|Total|n-1|SST|||
+
+```{r}
+ggplot(data = Heart) + geom_boxplot(mapping = aes(x=factor(Sex), y=MaxHR, fill=as.character(Sex)))
+
+model3 = lm(MaxHR~Age*Sex, data=Heart)
+# Same as lm(MaxHR~Age+Sex+Age:Sex)
+summary(model3)
+ggplot(data=Heart) + aes(x=Age, y=MaxHR,colour=as.character(Sex))+ geom_point() + geom_smooth(method="lm")
+```
+
+
+\newpage
+
+### Polynomial Regression
+
+- $Y = \beta_0 + \beta_1 x +\beta_2 x^2+\dots+\beta_hx^h+\epsilon$
+
+- Pick the degree that gives the lowest MSE and higest R square adjusted.
+
+- Be careful of over-fitting.
+
+```{r}
+Y = iris$Sepal.Width
+X = iris$Sepal.Length
+polym1 = lm(Y~X)
+summary(polym1)
+qplot(X,polym1$fitted.values, geom=c("point","smooth"))
+
+polym2 = lm(Y~X+I(X^2))
+summary(polym2)
+qplot(X,polym2$fitted.values, geom=c("point","smooth"))
+
+polym3 = lm(Y~X+I(X^2)+I(X^3))
+summary(polym3)
+qplot(X,polym3$fitted.values, geom=c("point","smooth"))
+
+polym4 = lm(Y~X+I(X^2)+I(X^3)+I(X^4))
+summary(polym4)
+qplot(X,polym4$fitted.values, geom=c("point","smooth"))
+
+polym5 = lm(Y~X+I(X^2)+I(X^3)+I(X^4)+I(X^5))
+summary(polym5)
+qplot(X,polym5$fitted.values, geom=c("point","smooth"))
+
+#MSEs
+polyMSE = c(sqrt(sum(polym1$residuals)^2)/148,sqrt(sum(polym2$residuals)^2)/147,sqrt(sum(polym3$residuals)^2)/146,sqrt(sum(polym4$residuals)^2)/145,sqrt(sum(polym5$residuals)^2)/144)
+polyMSE
+plot(1:5, polyMSE, type="b", main="degree vs residual", ylab="MSE")
+```
+
+\newpage
+
+### Model Selection Criteria
+
+- When multicollinearity among the predictor variables are observed, model selection is one way to resolve it.
+
+- Make sure to check all the assumptions are met before starting model selection.
+
+- Goodness of fit criteria:
+
+1. Adjusted R-square: $R_{adj}^2=1-\frac{SSE/(n-p-1)}{SST/(n-1)}=1-\frac{(1-R^2)(n-1)}{(n-p-1)}$. We don't use R-square because it automatically increase as the number of predictors increase.
+
+2. Akaike Information Criterion (AIC): Smaller the better. Reward for a good fit + penalty for complexity. $AIC=n*\log(\frac{SSE}{n})+2p$
+
+3. AIC corrected: Greater penality. Smaller the better. $AIC_C=AIC + \frac{2p(p+2)(p+3)}{n-p-1}$
+
+4. Bayes Information Criteria (BIC): Greater penalty than AIC when $\log(n)>2$, thus favors simpler model than $AIC$. As the sample size n increase, the probability that BIC choose the correct model becomes 1. For smaller n, BIC choose too simple model hence biased. $BIC = n*\log(\frac{SSE}{n}) + \log(n)*p$
+
+5. Mean Square Error: When test data is given, MSE is the most reliable measurement for choosing the best model. Combine with CV.
+
+### Subset Selection: Best Subset Model
+
+- For p predictors, we have $\sum^p_{k=1} {p\choose k}$ possible subset models.
+
+1. Start with $k = p$ i.e. full model, fit the model.
+
+2. $k = p-1$. Fit all $p\choose p-1$ models, keep the winner among $p\choose p-1$ with higest $R^2$. Here it's $R^2$ because we are comparing the models with same number of predictors.
+
+3. $k = p-2$, keep the winner.
+
+4. Repeat until $k=1$.
+
+5. Choose the best model among all winners. Use the criteria other than $R^2$.
+
+-----
+
+#### R: Best Subset Model
+
+\ 
+
+```{r}
+library(leaps)
+X = cbind(iris$Sepal.Length, iris$Petal.Length, iris$Petal.Width)
+b = regsubsets(X, iris$Sepal.Width)
+bs = summary(b);bs
+
+om1 = lm(Sepal.Width~Petal.Length,data=iris)
+om2 = lm(Sepal.Width~Sepal.Length+Petal.Length,data=iris)
+om3 = lm(Sepal.Width~Sepal.Length+Petal.Length+Petal.Width,data=iris)
+
+n = nrow(iris)
+
+p=1
+AIC1 = extractAIC(om1,k=2)[2]
+AICc1 = extractAIC(om1,k=2)[2] + 2*(p+2)*(p+3)/(n-p-1)
+BIC1 = extractAIC(om1, k=log(n))[2]
+
+p=2
+AIC2 = extractAIC(om1,k=2)[2]
+AICc2 = extractAIC(om1,k=2)[2] + 2*(p+2)*(p+3)/(n-p-1)
+BIC2 = extractAIC(om1, k=log(n))[2]
+
+p=3
+AIC3 = extractAIC(om1,k=2)[2]
+AICc3 = extractAIC(om1,k=2)[2] + 2*(p+2)*(p+3)/(n-p-1)
+BIC3 = extractAIC(om1, k=log(n))[2]
+
+AIC = c(AIC1,AIC2,AIC3)
+AICc = c(AICc1, AICc2, AICc3)
+BIC = c(BIC1, BIC2, BIC3)
+
+data.frame(Radj2 = bs$adjr2,AIC,AICc,BIC)
+```
+
+-----
+
+\newpage
+
+#### R: Best Subset Model (Alternative)
+
+
+- Black represents that the variables are selected. Pick the variables that highlighted on the very top.
+
+\ 
+
+```{r}
+library(ISLR)
+Hitters=na.omit(Hitters)
+regfit.full=regsubsets(Salary~.,Hitters)
+summary(regfit.full)
+
+par(mfrow=c(1,1))
+plot(regfit.full,scale="adjr2")
+plot(regfit.full,scale="bic")
+```
+
+
+\newpage
+
+### Subset Selection: Stepwise Regression
+
+#### Forward Stepwise
+
+1. Start with null model (intercept only)
+
+2. Fit model with $k=1$. Choose the best among $p$ models based on $R^2$.
+
+3. Add another vairbale to the previous model, keep the best model.
+
+4. Repeat until $k=p$.
+
+5. Choose the best among the $p$ candidate models using AIC, BIC etc...
+
+---
+
+#### R: Forward AIC
+
+\ 
+
+```{r}
+m = lm(Sepal.Width~1, data=iris)
+
+forwardAIC = step(m, scope = list(lower=~1,
+upper=~Sepal.Length+Petal.Length+Petal.Width,data),
+direction = "forward", data=iris)
+```
+
+\newpage
+
+#### R: Forward BIC
+
+\ 
+
+```{r}
+forwardBIC = step(m, scope = list(lower=~1,
+upper=~Sepal.Length+Petal.Length+Petal.Width,data),
+direction = "forward", data=iris, k=log(n))
+```
+
+
+\newpage
+
+
+
+#### Backward Stepwise
+
+1. Start with full model.
+
+2. Fit all models with $k=p-1$, pick the best model.
+
+3. Reduce another vriable from 2., pick the best model.
+
+4. Repeat until $k=1$.
+
+5. Choose the best among the $p$ candidate models using AIC, BIC etc...
+
+---
+
+#### R: Backward AIC
+
+\ 
+```{r}
+m = lm(mpg~disp+hp+drat+wt+qsec,data=mtcars)
+backAIC = step(m,direction = "backward", data=mtcars)
+```
+
+\newpage
+
+#### R: Backward BIC
+
+\ 
+```{r}
+backBIC = step(m, direction="backward", data=mtcars, k=log(n))
+```
+
+\newpage
+
+#### R: Forward and Backward Selection (Alternative)
+
+\ 
+
+```{r}
+regfit.fwd=regsubsets(Salary~.,data=Hitters,nvmax=19,method="forward")
+regfit.bwd=regsubsets(Salary~.,data=Hitters,nvmax=19,method="backward")
+
+# Choosing best number of predictors w/ CV, based on MSE.
+
+k=10
+set.seed(1)
+folds=sample(1:k,nrow(Hitters),replace=TRUE)
+cv.errors=matrix(NA,k,19, dimnames=list(NULL, paste(1:19)))
+
+predict.regsubsets=function(object,newdata,id,...){
+  form=as.formula(object$call[[2]])
+  mat=model.matrix(form,newdata)
+  coefi=coef(object,id=id)
+  xvars=names(coefi)
+  mat[,xvars]%*%coefi
+}
+
+
+for(j in 1:k){
+  best.fit=regsubsets(Salary~.,data=Hitters[folds!=j,],nvmax=19)
+  for(i in 1:19){
+    pred=predict(best.fit,Hitters[folds==j,],id=i)
+    cv.errors[j,i]=mean((Hitters$Salary[folds==j]-pred)^2)
+  }
+}
+mean.cv.errors=apply(cv.errors,2,mean)
+plot(mean.cv.errors,type='b')
+reg.best=regsubsets(Salary~.,data=Hitters, nvmax=19);coef(reg.best,11)
+```
+
+
+\newpage
+
+### Shrinkage: Regularization
+
+- Fit a model involving all p predictors, but the estimated coefficients are shrunken toward zero. This shirknkage has the effect of reducing variance and can also perfrom variable selection.
+
+- For both shrinkage methods below, it is recommended to use CV to choose the best tuning parameter.
+
+#### Ridge Regression
+
+- Instead of minimizing loss function $SSE=(Y-X\hat{\beta})^T(Y-X\hat{\beta})$, minimize the loss function with L2 penalty term: 
+
+- Minimize $(Y-X\hat{\beta})^T(Y-X\hat{\beta})+\lambda \hat{\beta}^T\hat{\beta}=SSE+\lambda ||\hat{\beta}||^2_2$ where $\lambda \ge 0$
+
+- The coefficients generated by Ridge regression tends to be similar in value (absolute value-wise) as the tuning parameter $\lambda$ increases. This is because the penalty term uses Euclidean distance, or L2 norm. When the tuning parameter is too large, all coefficients goes down to 0.
+
+- Ridge regression coefficiet estimate can change substantially when multiplying a given predictor by a constant, due to L2 norm part. Thus, it is best to apply Ridge regression after standarizing the predictors using the formula: $\tilde{x}_{ij}=\frac{x_{ij}}{\sqrt{\frac{1}{n}\sum^n_{i=1}(x_{ij}-\bar{x}_j)^2}}$
+
+#### LASSO regression
+
+- Minimize $(Y-X\hat{\beta})^T(Y-X\hat{\beta})+\lambda \mathbf{1}^T|\hat{\beta}|=SSE+\lambda ||\hat{\beta}||_1$ where $\lambda \ge 0$
+
+- The coefficients generated by LASSO regression tends to be reduced down to 0 as the tuning parameter increases. This is because the penalty term uses Manhattan distance, or L1 norm. Thus, this shrinkage method can perform as variable selection.
+
+- We say that the lasso yeilds sparse models i.e. the models that involve only a subset of variables, or contains many zeros.
+
+#### Elastic Net
+
+- The combination of LASSO and Ridge.
+
+- Minimize $SSE+\lambda (\frac{(1-\alpha)}{2}||\hat{\beta}||^2_2+\alpha||\hat{\beta}||_1)$ where $\lambda \ge 0$, $\alpha \in (0,1)$
+
+
+\newpage
+
+#### R: Shrinkage
+
+- Ridge: $\alpha = 0$
+
+- LASSO: $\alpha = 1$
+
+- Elastic Net: $\alpha \in (0,1)$
+
+- Make sure to use matrix / vector for the inputs. Sparse matrix from `library(Matrix)` is supported.
+
+---
+
+#### R: Ridge Regression
+
+\ 
+
+```{r}
+library(glmnet)
+library(ISLR) # For Hitters dataset
+x=model.matrix(Salary~.,Hitters)[,-1]
+y=Hitters$Salary
+
+
+set.seed(1)
+train=traindex(x)
+temp = 1:nrow(x)
+test=temp[-train]
+y.test=y[test]
+grid=10^seq(10,-2,length=100)
+ridge.mod=glmnet(x[train,],y[train], alpha=0,lambda=grid, thresh=1e-12)
+
+# lambda = 4
+ridge.pred=predict(ridge.mod,s=4,newx=x[test,])
+mean((ridge.pred-y.test)^2)
+
+# lambda = 0
+ridge.pred=predict(ridge.mod,s=0,newx=x[test,])
+mean((ridge.pred-y.test)^2)
+
+# When lambda = 0, same as lm
+lm(y~x, subset=train)
+
+ridge.mod=glmnet(x[train,],y[train], alpha=0,lambda=0, thresh=1e-12)
+predict(ridge.mod,s=0,exact=T,type="coefficients")
+
+
+# Cross Validation to choose lambda
+cv.out=cv.glmnet(x[train,],y[train],alpha=0)
+plot(cv.out)
+bestlam=cv.out$lambda.min
+bestlam
+ridge.mod=glmnet(x[train,],y[train], alpha=0,lambda=bestlam, thresh=1e-12)
+ridge.pred=predict(ridge.mod, newx=x[test,])
+mean((ridge.pred-y.test)^2)
+
+```
+
+\newpage
+
+
+#### R: LASSO Regression
+
+\ 
+
+```{r}
+lasso.mod=glmnet(x[train,],y[train],alpha=1,lambda=grid)
+plot(lasso.mod)
+
+set.seed(1)
+cv.out=cv.glmnet(x[train,],y[train],alpha=1)
+plot(cv.out)
+
+bestlam=cv.out$lambda.min
+lasso.mod=glmnet(x[train,],y[train],alpha=1,lambda=bestlam)
+lasso.pred=predict(lasso.mod,newx=x[test,])
+mean((lasso.pred-y.test)^2)
+
+out=glmnet(x,y,alpha=1,lambda=grid)
+lasso.coef=predict(out,type="coefficients",s=bestlam)[1:20,];lasso.coef[lasso.coef!=0]
+```
+
+
+
+\newpage
+
+### Dimension Reduction: Principle Component Analysis
+
+- Project the p predictors into M-dimensional subspace, where M < p. This is achieved by computing M different linear combinations of the variables. Then, M projections are used as predictor to fit a linear regression model by least squares.
+
+- Before applying PCA, normalize the dataset.
+
+- The first principle component is the linear combination of the variables with the largest variance so that the dataset is easily distinguishable e.g. LDA or grouping would perform well.
+
+- The second principle component is also the linear combination of the vairables with the largest variance, subject to being uncorrelated with the first one i.e. perpendicular / independent of the first one, and third PC, forth PC, and so on.
+
+- Drawback: the directions / new dimensions identified by PCA, i.e. the way linear combinations are created, is unsupervised way since the response Y is not used to help determine the PCA directions. Thus, there is no gurantee that the directions that best explain the predictors will also be the best directions to use for predicting the response.
+
+- Regression on data with PCA applied is called principle component regression.
+
+- Mathematically, we have the following optimization problem. Solving this using the method of Lagrange multiplier, it reveals that the PCA  coefficients of the linear combinations are the eigenvectors of the variance-covariance matrix of a dataset with the eigenvalues equal to the Lagrange multipliers.
+
+- A dataset with all PC's applied has a variance-covariance matrix whose non-diagonal entires are zero. That is, the all variables are uncorrelated.
+
+$$\text{min}\quad \mathbf{W}^T\mathbf{\Sigma}\mathbf{W}\\
+s.t. \mathbf{W}^T\mathbf{W}=1$$
+
+---
+
+#### R: PCA
+
+```{r}
+mtcars_temp = subset(mtcars,select=c(mpg,wt, disp, qsec))
+mtcars_c = scale(mtcars_temp) # Normalize
+out_pca = princomp(mtcars_c) # PCA
+
+summary(out_pca)
+W = out_pca$loadings;W # Linear combinations
+
+# Dimension Reduction to PC1
+X = as.matrix(mtcars_c)
+XW = X%*%W ; XW[,1]
+
+# Covariance Matrix
+var(X)
+round(var(XW),7)
+```
+
+\newpage
+
+#### R: Principle Component Regression
+
+- Pick `ncomp` that minimize MSEP.
+
+\ 
+
+```{r}
+library(pls)
+train.i = traindex(mtcars_temp)
+
+mtcars_train = mtcars_temp[train.i,]
+mtcars_test = mtcars_temp[-train.i,2:4]
+y_test = mtcars_temp[-train.i,1]
+
+pcr.fit=pcr(mpg~., data=mtcars_train,scale=TRUE, validation="CV")
+validationplot(pcr.fit,val.type="MSEP")
+
+pcr.pred=predict(pcr.fit,mtcars_test,ncomp=1)
+mean((pcr.pred-y_test)^2)
+pcr.fit=pcr(y~x,scale=TRUE,ncomp=1)
+summary(pcr.fit)
+```
+
+\newpage
+
+### Spline
+
+- The truth is that association between variables are hardly ever linear. However, polynomial regression often cannot capture all features and associations among variables. To achieve this, fit linear regression piece-wise, and fit different polynomials for each pieces, then smooth the entire curve. Thus, spline works on one continuous predictor.
+
+- Keep bias-variance trade off in mind. Linear model is highly biased, but if we attempt to increase the flexibility of the model, the bias decreases but variability increases. Add more flexibility until the bias is low enough yet the variability is not too high.
+
+- The junctions of pieces is called "knot". 
+
+- Step functions are used to divide the predictor variables and add knots. `cut` command divides the predictor variables into K many equal length intervals and assign each observation into the appropriate interval. Use `break` option to make your own cut if desired.
+
+- Spline is the combine step functions and polynomial regression. One draw back is that piecewise polynomials can create a discontinuity at knots. Thus, we smooth the curve.
+
+- `bs(X, knot)`: Any degree splines e.g. Linear splines and cubic splines (piece-wise cubic polynomials). A cubic spline with K knots has K+4 df.
+
+- `ns(X, df)`: Natural cubic splines. A natural cubic spline extrapolates linearly beyond the boundary knots. This adds 4  extra constraints, and allows us to put more internal knots for the same degrees of freedom as a regular cubic spline. Thus, natural splines with K knots has K df.
+
+- `s(X, df)`: Smoothing splines, fit model via minimize $SSE+\lambda\int g''(t)dt$. Smoothing splines avoid the knot-selection issue, leaving a
+single $\lambda$ to be chosen. Here, `smooth.spline()` function fit a smoothing spline, and we choose df instead of $\lambda$.
+
+- `lo(X, span)`: Local regression spline, also called loess. We fit separate linear fits over the range of the predictor variable by weighted least squares. Highly flexible. Use `loess()` function as an alternative.
+
+---
+
+#### R: Step function
+
+```{r}
+library(splines)
+m = lm(Sepal.Width~cut(Sepal.Length, 3), data=iris)
+summary(m)
+```
+
+\newpage
+
+#### R: Spline
+
+\ 
+
+```{r}
+library(splines)
+grids = seq(min(iris$Sepal.Length), max(iris$Sepal.Length), by=0.01)
+
+m = lm(Sepal.Width~bs(Sepal.Length, knots=c(4.3, 5.5, 6.7, 7.9)), data=iris)
+summary(m)
+pred=predict(m,newdata=list(Sepal.Length=grids),se=T)
+plot(Sepal.Width~Sepal.Length, data=iris);lines(grids,pred$fit,lwd=2)
+
+fit=smooth.spline(iris$Sepal.Length,iris$Sepal.Width,cv=T);fit$df
+plot(Sepal.Width~Sepal.Length, data=iris);lines(fit,col="red",lwd=2)
+
+m=lm(Sepal.Width~ns(Sepal.Length,df=16),data=iris)
+pred=predict(m,newdata=list(Sepal.Length=grids),se=T)
+plot(Sepal.Width~Sepal.Length, data=iris);lines(grids, pred$fit,col="red",lwd=2)
+
+```
+
+\newpage
+
+### Generalized Additive Models
+
+- Allows flexible non-linrarities in multiple variables, but retains the additive structure of linear models. For instance, We can fit multiple splines or local regression.
+
+- Use `anova()` to compare models. In the case below, model2 is the best.
+
+---
+
+```{r}
+library(gam)
+m1 = gam(Sepal.Width~s(Sepal.Length,df=16), data=iris)
+m2 = gam(Sepal.Width~s(Sepal.Length,df=16)+s(Petal.Width,3), data=iris)
+m3 = gam(Sepal.Width~s(Sepal.Length,df=16)+s(Petal.Width,3)+Petal.Length, data=iris)
+anova(m1,m2,m3,test="F")
+summary(m2)
+# training MSE
+mean((iris$Sepal.Width-predict(m2,newdata=iris))^2)
+library(akima)
+plot(m2, se=TRUE, col="red")
+
+grids1 = seq(min(iris$Sepal.Length),max(iris$Sepal.Length), length.out = 50)
+grids2 = seq(min(iris$Petal.Length),max(iris$Petal.Length), length.out = 50)
+grids3 = seq(min(iris$Petal.Width),max(iris$Petal.Width), length.out = 50)
+irisdf = data.frame(Sepal.Length=grids1, Petal.Length=grids2,Petal.Width=grids3)
+pred = predict(m2, newdata=irisdf)
+plot(Sepal.Width~Sepal.Length, data=iris);lines(grids1, pred,col="red",lwd=2)
+```
+
+\newpage
+
+### Logistic Regression
+
+- Probabilistic, supervised learning, classification
+
+- Linear regression produce a result ranged in $(-\infty,\infty)$, which is not appropriate here. Thus, when binary outcome is present, logistic regression is appropriate.
+
+- $\theta(x_i) = \frac{exp(\beta_0+\beta_1x_i)}{1+exp(\beta_0+\beta_1x_i)}=\frac{1}{1+exp(-\{\beta_0+\beta_1x_i\})}$
+
+- $\log(\frac{\theta(x_i)}{1-\theta(x_i)})=\beta_0+\beta_1x_i$ where $\log(\frac{\theta(x_i)}{1-\theta(x_i)})$ is called logit.
+
+- $\log(\frac{\hat{\theta(x_i)}}{1-\hat{\theta(x_i)}})=\hat{\beta_0}+\hat{\beta_1}x_i$
+
+- We use maximum likelihood estimates for coefficients, but no closed-form solutions exist. Thus, we take advantage of computation results.
+
+- "For every unit increase in X, the odds that the characteristic is present is multiplied by $exp(\beta_1)$."
+
+- Recall the PDF of binomial: $P(Y_i=y_i|x_i) = {m_i\choose y_i} \theta(x_i)(1-\theta(x_i))^{m_i-y_i}$ 
+
+- Recall the log likelihood of binomial : $\log(L)=\sum^n_{i=1}(y_i(\beta_0+\beta_1x_i)-m_i\log(1+exp(\beta_0+\beta_1x_i))+\log{m_i\choose y_i})$.
+
+#### Goodness of fit test
+
+- $H_o:$ The logistic regression is appropriate vs. $H_a:$ Not appropriate.
+
+- We use two log likelihood : $\log(L_M)$ vs. $\log(L_S)$ where M refers the logistic regression model and S refers to the saturated model, a model with a theoretically perfect fit. Thus, $\hat{y_i}=y_i$ under the saturated model.
+
+- Set $\hat{y_i}=\hat{\theta_M}(x_i)m_i$
+
+1. Deviance: $G^2=2(\log(L_S)-\log(L_M))=2\sum^n_{i=1}[y_i\log(\frac{y_i}{\hat{y_i}})+(m_i-y_i)\log(\frac{m_i-y_i}{m_i-\hat{y_i}})]\sim\chi^2_{n-p-1}$. IF the model is appropriate, then $G^2$ is smaller so we fail to reject the null. $\text{P-value}=P(\chi^2_{n-p-1}>G^2_{obs})$
+
+2. Pearson $\chi^2$ statistic: $\chi^2=\sum\frac{(y_i/m_i-\hat{\theta}(y_i))^2}{\hat{\theta}(y_i)(1-\hat{\theta}(y_i))/m_i}\sim\chi^2_{n-p-1}$
+
+3. R-squared: $R^2_{dev} = 1-\frac{G^2_{H_a}}{G^2_{H_o}}$
+
+#### Comparing models
+
+- $H_o: \theta(x)=\frac{1}{1+exp(-\beta_0)}$ vs. $H_a: \theta(x)=\frac{1}{1+exp(-\{\beta_0+\beta_1x\})}$
+
+- $G^2_{H_o}-G^2_{H_a}\sim\chi^2_{df_1-df_2}$ where $df_1=n-(\text{num. of predictors in } H_0)-1$ and $df_2=n-(\text{num. of predictors in } H_a)-1$
+
+#### Marginal model plot
+
+Compare the following two models, and determine wheather the logistic regression is appropriate. If two models are significantly different, then the logistic regression ins not appropriate.
+
+1. Parametric model : $\theta(x_i)=\frac{1}{1+exp(-\{\beta_0+\beta_1x_i\})}$ 
+
+2. Nonparametric model : $\theta(x) = f(x_1,\dots,x_p)$. For the model with $p$ predictors, we need $p$ many marginal model plots. If any of them show discrepancy from parametric model, then the parametric model (logistic regression) is not appropriate.
+
+
+\newpage
+
+#### R: Logistic Regression
+
+- Some predictor variables cause an error:`glm.fit: algorithm did not converge` when the sample size is not enough.
+
+- If `Gdiff < 0.05`, reject $H_o$ and full model is better.
+
+\ 
+
+```{r}
+m = glm(am~mpg+disp+hp+wt, family=binomial(), data=mtcars)
+summary(m)
+
+Gdiff = m$null.deviance-m$deviance
+pchisq(Gdiff,4,lower=FALSE)
+
+library(alr3)
+mmps(m)
+```
+
+\newpage
+
+#### R: Comparing models
+
+- Here, failed to reject Null, `m3` model is better.
+
+- Also, one of the plot shows a descrepancy. Logistic regression for `m2` might not be appropriate.
+
+\ 
+
+```{r}
+m3 = glm(am~mpg+hp+wt, family=binomial(), data=mtcars)
+mmps(m3)
+
+m2 = glm(am~hp+wt, family=binomial(), data=mtcars)
+mmps(m2)
+
+anova(m3,m2,test="Chisq")
+```
+
+\newpage
+
+#### R: Prediction
+
+\ 
+
+```{r}
+set.seed(1)
+train.i = traindex(mtcars, trainn = 25)
+
+Y_train = mtcars[train.i, c("am")]
+Y_test = mtcars[-train.i, c("am")]
+X_train = mtcars[train.i, c("mpg","hp","wt")];X_train = cbind(X_train,Y_train)
+X_test = mtcars[-train.i, c("mpg","hp","wt")]
+
+m = glm(Y_train~mpg+hp+wt, family = binomial(), data=X_train)
+Y_pred = ifelse(predict(m, X_test, type="response")>=0.5,1,0)
+table(Y_test, Y_pred)
+```
+
+
+\newpage
+
+## Bayes Classifier
+
+- $P()=\frac{P()P()}{P()}$
+
+
+\newpage
+
+## K Nearest Neighbor
+
+- Non-probablistic, supervised learning, classification
+
+- Judge the category of a point via the category of K many Euclidian nearest others.
+
+- No assumption on distribution of X, but they have to be numeric continuous.
+
+- Draw decision boundary according to K many closest neighbors based on Euclidian distance.
+
+- Make sure to standarize the predictor variable X because the algorithm takes Euclidan distance to determine the line, and standarizing increase the accuracy of the results.
+
+- Highly non-linear boundry for smaller K.
+
+---
+
+```{r}
+library(class)
+set.seed(1)
+test.i = sample(1:nrow(Heart),50, replace=F)
+
+# Standarize predictors (continuous)
+Xs = scale(cbind(Heart$Age, Heart$MaxHR))
+Xs_test = Xs[test.i,]
+Xs_train = Xs[-test.i,]
+Y_test = Heart$AHD[test.i]
+Y_train = Heart$AHD[-test.i]
+knn_output = knn(Xs_train, Xs_test, Y_train, k=1)
+
+# MSE
+mean(knn_output!=Y_test)
+
+# Confusion Matrix
+table(knn_output, Y_test)
+```
+
+\newpage 
+
+#### Find the best K
+
+\ 
+
+```{r}
+library(caret)
+library(e1071)
+Heart_train = cbind(Xs_train,Y_train);colnames(Heart_train) = c("Age","MaxHR","AHD")
+ctrl = trainControl(method="repeatedcv", repeats=13)
+knnfit = train(as.factor(AHD)~., data=Heart_train, trControl=ctrl, method="knn", preProcess = c("center","scale"), tuneLength = 10)
+knnfit
+knnfit_val = data.frame(knnfit[4])
+plot(knnfit_val[,1], knnfit_val[,2], type="b", col="blue", xlab="k", ylab="Accuracy")
+maxacu = which(knnfit$results$Accuracy==max(knnfit$results$Accuracy));maxacu
+```
+
+\newpage
+
+#### Repeat with the best K
+
+\ 
+
+```{r}
+knn_output = knn(Xs_train, Xs_test, Y_train, k=maxacu, prob=T)
+# MSE
+mean(knn_output!=Y_test)
+# Confusion Matrix
+table(knn_output, Y_test)
+```
+
+\newpage
+
+## Linear Descriminant Analysis
+
+- non-probablistic, supervised learning, classification.
+
+- Finds the best place to make the best split linear boundary between two (or more) distributions.  Relies on the Bayes Classifier. Tries to find the K-dimenstional projection that creates the greatest between group separation.
+
+- Assumption: Normaility and small sample size, and same variance among all group (cateogry).
+
+- Make the dataset linearly independent. LD1, LD2... are the coefficients such that makes the dataset linearly independent i.e. eigenvectors.
+
+- Dimension reduction.
+
+- The devision line $x=\frac{\mu_1+\mu_2}{2}$
+
+```{r}
+ggplot(iris) + geom_density(mapping=aes(x=Sepal.Length, color=as.character(Species)))+ geom_vline(xintercept = 5.42)
+```
+
+- The lda$svd represents the eigenvalues, and bigger the better split the data.
+
+- LD1 and LD2 on the bottom represents the trace. Bigger the more important role.
+
+- LD1, LD2 with coefficients are the eigenvectors. Make sure that they are all standarized.
+
+---
+
+```{r}
+library(MASS)
+set.seed(1)
+test.i = sample(1:nrow(iris),30, replace=F)
+X_train = iris[-test.i, 1:4]
+X_test = iris[test.i, 1:4]
+Y_train = iris[-test.i, 5]
+Y_test = iris[test.i, 5]
+
+# LDA
+model_lda = lda(Y_train~X_train$Sepal.Length+X_train$Sepal.Width);model_lda
+# Take LD1(The first split)
+LD1 = predict(model_lda)$x[,1]
+
+plot(Y_test)
+plot(LD1, type="n");text(LD1,labels=unclass(iris$Species))
+```
+
+\newpage
+
+```{r}
+m3 = lda(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width, data = iris)
+m3
+LD1<-predict(m3)$x[,1]
+LD2<-predict(m3)$x[,2]
+plot(LD1,LD2,xlab="first linear discriminant",ylab="second linear discriminant",type="n")
+text(cbind(LD1,LD2),labels=unclass(iris$Species))
+
+head(2.105107+0.8293776*iris$Sepal.Length+1.5344731*iris$Sepal.Width-2.2012117*iris$Petal.Length-2.8104603*iris$Petal.Width)
+
+head(LD1)
+cor(iris[,1],LD1)
+
+m3$svd
+
+
+iris.lda<-lda(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width,  data = iris)
+iris.lda
+plot(iris.lda)
+
+iris.lda$svd
+iris.lda$counts
+iris.lda$means
+iris.lda$lev
+
+# Plots:
+LD1<-predict(iris.lda)$x[,1]
+LD2<-predict(iris.lda)$x[,2]
+
+plot(LD1,LD2,xlab="first linear discriminant",ylab="second linear discriminant",col=2:4,type="n",main="LDA1 vs LDA2 for the three Species")
+text(cbind(LD1,LD2),labels=iris$Species)
+legend(0.5,2.8,legend=c("Setosa","Versicolor","Virginica"))
+
+plot(LD1,LD2,xlab="first linear discriminant",ylab="second linear discriminant",col=2:4,type="n",main="LDA1 vs LDA2 for the three Species")
+text(cbind(LD1,LD2),labels=unclass(iris$Species))
+legend(0.5,2.8,legend=c("1=Setosa","2=Versicolor","3=Virginica"))
+# 1="setosa"     
+# 2="versicolor" 
+# 3="virginica" 
+
+qplot(x = LD1, y = LD2, colour = iris$Species,shape = iris$Species,main="LDA1 vs LDA2 for the three Species")
+
+# Group centroids
+
+sum(LD1*(iris$Species=="setosa"))/sum(iris$Species=="setosa")
+sum(LD2*(iris$Species=="setosa"))/sum(iris$Species=="setosa")
+
+sum(LD1*(iris$Species=="versicolor"))/sum(iris$Species=="versicolor")
+sum(LD2*(iris$Species=="versicolor"))/sum(iris$Species=="versicolor")
+
+sum(LD1*(iris$Species=="virginica"))/sum(iris$Species=="virginica")
+sum(LD2*(iris$Species=="virginica"))/sum(iris$Species=="virginica")
+
+iris.predict<-predict(iris.lda,iris[,1:4])
+iris.classify<-iris.predict$class
+iris.classperc<-sum(iris.classify==iris[,5])/150
+iris.classperc
+
+table(Original=iris$Species,Predicted=predict(iris.lda)$class)
+
+
+```
+
+\newpage
+
+## Quadratic Discriminant Analysis
+
+- In stead of linear boundary, we use non-linear boundary.
+
+
+```{r}
+m4 = qda(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width, data = iris)
+m4
+```
+
+
+
+\newpage
+
+## Support Vector Machine
+
+\newpage
+
+## K-Means Clustering
+
+
+\newpage
+
+## Kernelized Clustering
+
+\newpage
+
+## EM Type Algorithm
+
+\newpage
+
+## Decision Trees
+
+- Partition data points. Determine the value of response variable (if continuous, the mean of the response) according to which partition that new predictor belongs to (looks like a house diagram). If Y is continuous, it is called regression tree and if Y is cateogorical, it is called classification tree.
+
+- Determine the splits lines that generate the lowest MSE. As we have more splits, the new value of Y can be determined on the tree structure, or "nested if" structure.
+
+- Pruning tree: A large tree can be over-fitting, thus pruning tree allows cutting off some of the terminal nodes. Find the best pruning by cross validation.
+
+- If the relationship between the predictors and response is linear, then linear regression is better; if the relationship is "rectangle" shapes, tree performs better.
+
+- Easily interpretable (e.g. If weight is above 40kg, height is higher than 140cm in average). However, suffer from high variance. Thus, use random forest to resolve this issue.
+
+---
+
+#### R: Tree
+
+\ 
+
+```{r}
+library(tree)
+train.i = traindex(iris)
+iris_train = iris[train.i,]
+iris_test = iris[-train.i,1:4]
+Y_test = factor(iris[-train.i,5])
+
+tree1 = tree(Species~., data=iris_train)
+summary(tree1)
+plot(tree1);text(tree1)
+
+# Prediction
+preds=predict(tree1,newdata=iris_test, type="class")
+table(Y_test, preds)
+```
+
+---
+
+#### R: Pruning Tree
+
+- Here, it shows that pruning with 5 branches is appropriate.
+
+\ 
+
+```{r}
+cv.train=cv.tree(tree1,FUN=prune.misclass)
+plot(cv.train$dev~cv.train$size)
+pruned.fit=prune.misclass(tree1,best=5)
+
+plot(pruned.fit)
+text(pruned.fit,pretty=TRUE)
+summary(pruned.fit)
+
+# Prediction
+pred.prune=predict(pruned.fit,newdata=iris_test,type="class")
+table(Y_test, pred.prune)
+```
+
+---
+
+#### R: Regression Tree
+
+\ 
+
+```{r}
+mtcars_temp = subset(mtcars,select=c(mpg,wt, disp, qsec))
+tree2=tree(mpg~., data=mtcars_temp)
+summary(tree2)
+plot(tree2)
+text(tree2,pretty=0)
+```
+
+\newpage
+
+## Random Forest
+
+- Use bagging: Bootstrap + averaging. That is, generate B different bootstrapped training dataset. Train the statistical learning method on each of the B training datasets, and obtain the prediction, then take the average. In this case, construct B different trees using B bootstrapped dataset, then take the average of the results.
+
+- If continuous, average all predictions from all B trees. If Classification, majority vote among all B trees. These trees are not pruned, so each individual tree has high variance but low bias. Averaging these trees reduces variance, and thus lowering both variance and bias can be achieved.
+
+- Two methods for prediction: Record the class that each bootstrapped data set predicts and provide an overall prediction to the most commonly occurring one (majority vote). Or, if our classifier produces probability estimates we can just average the probabilities and then predict to the class with the highest probability.
+
+- Bagging improves prediction accuracy at the expense of interpretability. But, we can use relative influence plots to see the contributions of each variables to the model. Larger the more influential.
+
+- Random forest: Build a number of decision trees on bootstrapped training sample, but when building these trees, each time a split in a tree is considered, a random sample of m predictors is chosen as split candidates from the full set of p predictors. Only m predictors are used for the sake of "de-correlation" of the model; if all variables are used, each models for each bootstrapped dataset will be similar to each other, hence highly correlated. Averaging many highly correlated quantities does not lead to a large variance reduction.
+
+---
+
+#### R: RF, `mtry=4`
+
+```{r}
+library(randomForest)
+
+RF=randomForest(Species~.,data=iris_train,mtry=4,importance=TRUE, ntree=100)
+summary(RF)
+plot(RF)
+print(RF)
+importance(RF)
+varImpPlot (RF)
+
+preds = predict(RF,newdata=iris_test)
+table(Y_test, preds)
+```
+
+---
+
+#### R: RF, `mtry=2`
+
+```{r}
+RF=randomForest(Species~.,data=iris_train,mtry=2,importance=TRUE, ntree=100)
+summary(RF)
+plot(RF)
+print(RF)
+importance(RF)
+varImpPlot (RF)
+
+preds = predict(RF,newdata=iris_test)
+table(Y_test, preds)
+```
+
+\newpage
+
+## Neural Network
+
+- Use CV to adjust the size of nodes.
+
+\ 
+
+```{r}
+library(nnet)
+library(NeuralNetTools)
+
+train.i = traindex(iris)
+iris_train = iris[train.i,]
+iris_test = iris[-train.i,1:4]
+Y_test = iris[-train.i,5]
+
+m = nnet(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width, size=3, data = iris_train)
+plotnet(m)
+
+results = max.col(predict(m, iris_test))
+table(Y_test, results)
+```
+
+\newpage
+
+## Comparing all classification methods
+
+
+|Method|Linearity|Normality|Constant Variance|Big Sample Size|K>2|
+|-------------------|---------|---------|-----------------|---------------|---|
+|Logistic Regression|Yes|Yes on Y|Yes|Yes|K=2|
+|LDA|Yes|Yes on X and Y|Yes|No|Yes|
+|QDA|No|Yes|No|No|Yes|
+|KNN|No|No|No|Yes|Yes|
+
+\newpage
+
+# Experimental Design
+
+- Enable to study cause and effect relationship. 
+
+- Three key factors: Randomization, Replication, Blocking.
+
+1. Randomization: The allocation of units to treatment must be randomly determined to prevent subjecive assignments and possible biases. The order of the experiment also must be randomized. Also, "average out" the effects irrelevant or unknown factors that might be present.
+
+2. Replication: Each treatment is applied to a different experimenta unit. For each treatment, good number of replications are desired to obtain more accurate estimate of experimental error and results. Reperition refers to measuring the same observation with the same factors over multiple times.
+
+3. Blocking: Delas with nuisance factors, the factors that may influence the experimental results but not interested and cannot be controlled. If there is a factor that can be controlled e.g. gender, block them. If not, rely on randomization.
+
+- Guideline
+
+1. Recognition of and statement of problem
+
+2. Selection of response variable, continuous response is preferable.
+
+3. Choice of factors, levels, ranges.
+
+4. Choice of experimental design
+
+5. Perform experiment
+
+6. Analyze the data
+
+7. Conclusion/recommendation
+
+- Assumptions are the same as OLS: Independence, constant variance, normality.
+
+- Type I error: $\alpha=P(\text{reject Null}|\text{Null is true})$
+
+- Type II error: $\beta=P(\text{failt reject Null}|\text{Null is false})$
+
+## t-test
+
+- Hypothesis: $H_o: \mu_1=\mu_3=\dots=\mu_k$
+
+- $t_o=\frac{\bar{y_1}+\bar{y_1}}{S_p\sqrt{1/n_1+1/n_2}}\sim t_{n_1+n_2-2}$
+
+
+\newpage
+
+## Completely Randomized Design
+
+- Key: one treatment with many levels.
+
+- If no blocking, its structure and test style is very similar (or identical) to two sample t-test.
+
+- Randomized treatement and blocking order to prevent biases. The role of repetition is to reduce the variation on the result of the experiment.
+
+- Effect model $y_{ij}=\mu+\tau_i+\epsilon_{ij}$ for $i=1,\dots,a$, $j=1,\dots,n$.
+
+---
+
+#### R: No Blocking Case
+
+\ 
+
+```{r}
+bond = c(16.85,16.40,17.21,16.35,16.52,17.04,16.96,17.15,16.59,16.57,16.62,16.75,17.37,17.12,16.98,16.87,17.34,17.02,17.08,17.27)
+mortar = c(rep("modified",10),rep("unmodified",10))
+
+# Check normality assumption
+par(mfrow=c(1,2))
+qqnorm(bond[mortar=="modified"]);qqline(bond[mortar=="modified"])
+qqnorm(bond[mortar=="unmodified"]);qqline(bond[mortar=="unmodified"])
+par(mfrow=c(1,1))
+
+# Assuming unequal variances:
+# numeric ~ categorical
+m1=t.test(bond~mortar, var.equal=FALSE, alternative="two.sided", mu=0);m1
+m1$p.value
+# Equal Var
+m2=t.test(bond~mortar, var.equal=TRUE);m2
+m2$p.value
+```
+
+
+
+\newpage
+
+## Paird Comparison Design
+
+- Key: one treatment with two levels only and one block.
+
+- Special case of RBD. Make comparisons within matched pairs of experimental material.
+
+- Effect model $y_{ij}=\mu_i+\beta_j+\epsilon_{ij}$ for $i=1,2$, $j=1,\dots,n$.
+
+- $H_o: \mu_d=\mu_1-\mu_2=0$ and $t=\frac{\bar{d}}{S_d/\sqrt{n}}\sim t_{n-1}$ OR $H_o: \sigma_1^2=\sigma_2^2$ and $F_0=\frac{S_1^2}{S_2^2}\sim F_{n_1-1,n_2-1}$
+
+- Under this synario, blocking reduces variance much more than CRBD, because its degrees of freedom is much bigger than this design. In words, df determines the sensitivity of the test: bigger the more sensitive and wider CI.
+
+- Blocking is not always the best design strategy. If the within block variability is the same as the between block variability, the variance of will be the same regardless of which design is used. Actually, blocking in this situation would be a poor choice of design because blocking results in the loss of n-1 degrees of freedom and will actually lead to a wider confidence interval on $\mu_1-\mu_2$.
+
+|     |    CRD    |    RBD   |
+|-----------|------------------|----------------|
+|Nill| $\mu_1-\mu_2=0$|$\mu_d=0$|
+|Sample Stats| $\bar{y_1}-\bar{y_2}$|$\bar{d}$|
+|Test Stats| $t_o=\frac{\bar{y_1}+\bar{y_1}}{S_1\sqrt{1/n_1+1/n_2}}$|$t=\frac{\bar{d}}{S_d/\sqrt{n}}$|
+|Est. of SD| $S_p=\sqrt{\frac{(n_1-1)S_1^2+(n_2-1)S_2^2}{n_1+n_2-2}}$|$S_d=\sqrt{\frac{\sum(d_j-\bar{d})^2}{n-1}}$|
+|DF|$n_1+n_2-2$|$n-1$|
+
+
+---
+
+#### R: Paird Deisgn
+
+\ 
+
+```{r}
+hardness <- c(7,3,3,4,8,3,2,9,5,4,6,3,5,3,8,2,4,9,4,5)
+tip <- c(rep("tip1",10),rep("tip2",10))
+di <- hardness[tip=="tip1"]-hardness[tip=="tip2"]
+data2 <- data.frame(hardness=hardness,tip=tip, di=di)
+head(data2)
+
+
+n <- 10
+se_paired <- sd(di)/sqrt(n)
+se_paired
+
+t.test(hardness~tip, paired=TRUE)
+
+```
+
+---
+
+#### R: Test for equal variance
+
+\ 
+
+```{r}
+var.test(bond~mortar, alternative="two.sided")
+# p-value > 0.05, fail to reject the null : can assume the equal variance.
+# Appropriate t-test setting :
+t.test(bond~mortar, var.equal=TRUE)
+```
+
+
+\newpage
+
+## ANOVA for experiment
+
+### Basics
+
+- One-way ANOVA for one factor i.e. slope of regression, and Two-way ANOVA for two-factor i.e. treatment and controll. Use F-test.
+
+- Means Model  $y_{ij}=\mu_i+\epsilon_{ij}$ for $i=1,\dots,a$, $j=1,\dots,n$
+
+- Effect model $y_{ij}=\mu+\tau_i+\epsilon_{ij}$ for $i=1,\dots,a$, $j=1,\dots,n$.
+
+- Hypothesis: $H_o: \mu_1=\mu_3=\dots=\mu_a$
+
+|                |SS                    |DF   |MS              |F            |
+|----------------|----------------------|-----|----------------|-------------|
+|Between treatents        |$SS_{treat}=n\sum^a_{i=1}(\bar{y_{i.}}-\bar{\bar{y}})^2$         |a-1|$MS_{treat}=\frac{SS_{treat}}{n-1}$     |$F=\frac{MS_{treat}}{MS_E}$|
+|Error     |$SS_E=SS_T-SS_{treat}$|N-a|$MS_E$|   |
+|Total     |$SS_T=\sum^a_{i=1}\sum^n_{j=1}(y_{ij}-\bar{y})^2$|N-1|  | |
+
+
+
+---
+
+\ 
+
+```{r}
+require(Hmisc)
+Diet = c("Control","Control","Sucrose","Sucrose", "Glucose","Glucose","Fructose","Fructose")
+Times = c(2.3,1.7,4.0,3.6,2.9,2.7,2.1,2.3)
+summary(Times~Diet)
+```
+
+\newpage
+
+#### R: Effect Model
+
+- Result: $\tau_1=-0.7$, $\tau_2=-0.5$ and so forth. Thus, the effect of Control is 0.7 lower than the ground mean. Diet is significant, so we reject the null and conclude that at least one treatment is significant i.e. mean is different.
+
+\ 
+
+```{r}
+m = aov(Times~Diet)
+model.tables(m)
+summary(m)
+```
+
+---
+
+#### R: Means Model
+
+- Null for ANOVA is rejected, so at least one of the treatment is significant. In fact, we know that Glucose and Sucrose are.
+
+\ 
+
+```{r}
+m = lm(Times~Diet)
+summary(m)
+anova(m)
+```
+
+
+### Model Adequacy
+
+- Residuals: $e_{ij}=y_{ij}-\bar{y_{i.}}$. Check the following:
+
+1. Residuals are normally distributed (use normal probability
+plot)
+
+2. the residuals are random and independent one another
+
+3. the variance of the residuals is constant over different
+treatments. Use residual vs. fitted plot
+
+### Post-hoc analysis
+
+- Examine all pairs(i,j) to find which specific group means are significantly different one another. Confidence interval for $\mu_i-\mu_j$ for all pairs. Hypothesis testing for $H_0:\mu_i=\mu_j$ for all pairs.
+
+-Fisher's LSD Method
+
+- Tuckey's Method.
+
+### Power of the test
+
+- Obtain number of replications. Use power: $1-\beta$, the probability of correctly rejecting Null given the Null is false. In ANOVA, we conclude the treatment means are significantly different when the true means are really different.
+
+1. Power depends on the significant level $\alpha$. If you reduce the significance level (e.g., from 0.05 to 0.01), the rejection region gets smaller. As a result, you are less likely to reject the null hypothesis. This means that you are less likely to reject the null hypothesis when it is false, so you are more likely to make a Type II error. In short, the power of the test is reduced when you reduce the significance level ; and vice versa.
+
+2. Sample size n. A larger sample size narrows the distribution of the test statistic. Thus, there is a less overlap between the sampling distribution under Ho vs H1. For the fixed significance level, power will increase as the sample size increases. In fact, BOTH Power and $1-\alpha$ increase, because as n increases, we are more likely to make correct decision.
+
+3. Effect size (f). To know if an observed difference is not only statistically significant but also important or meaningful, you will need to calculate its effect size: $f=\sqrt{\frac{\sum^a(\mu_i-\mu)^2}{a\sigma^2}}$, which measures how far each treatment mean must be from the grand mean, but it is not common to know the true means. We usually use the meaningful difference we would be interested in: the maximum difference among each treatment means $d=max(\mu_i-\mu_j)$.
+
+-`pwr.anova.test(k,n.f.sig.level=0.05,power)`. K = number of treatment. Need three input, then R will return the missing forth one.
+
+---
+
+\ 
+
+```{r}
+library(pwr)
+pwr.anova.test(k=3,f=0.59, power=0.9)
+pwr.anova.test(k=3,n=10,f=0.3)
+```
+
+\newpage
+
+## Completely Randomized Block Design
+
+- Key: One treatment, one block with many levels.
+
+- In CRD, we did not consider nuisance factor. Here, we do. blocking is one approach, especially if the nuisance factors are known and controllable.
+
+- This design strategy improves the accuracy of the comparisons among treatments by eliminating the variability among the blocks.
+
+- Generalizationof paird comparison design.
+
+- $y_{ij}=\mu+\tau_i+\beta_j+\epsilon_{ij}$ for $i=1,\dots,a$, $j=1,\dots,b$ where $\mu$ is overall mean, $\tau_i$ is the effect of the ith treatment, $\beta_j$ is the effect of jth factor.
+
+- $H_o: \tau_1=\dots=\tau_a=0$, use F test where $F_0~F_{a-1,(a-1)(b-1)}$
+
+- To test if blocking is necessary, $H_o:\beta_1=\dots=\beta_b=0$. However, $F_0=\frac{MS_{blocks}}{MS_E}$ CANNOT be used.
+
+|                |SS                    |DF          |MS                    |F            |
+|----------------|----------------------|------------|----------------------|-------------|
+|Treatents        |$SS_{treat}$         |a-1|$MS_{treat}=\frac{SS_{treat}}{n-1}$     |$F=\frac{MS_{treat}}{MS_E}$|
+|Blocks    | $SS_{block}$|b-1|$MS_{block}=\frac{SS_{block}}{b-1}$ |
+|Error     |$SS_E=SS_T-SS_{treat}-SS_{block}$|(a-1)(b-1)|$MS_E=\frac{SS_E}{(a-1)(b-1)}$|   |
+|Total     |$SS_T$|N-1|  | |
+
+\newpage
+
+## Latin Square Design
+
+- Key: one treatment, two blocks with all same levels.
+
+- Latin Squares design deals with the case where there are two nuisance factors to control.
+
+- Both nuisance factors and treatment must have the same number of levels. Only one observation per combination. Latin square designs are reasonable choices when it is impossible to use each treatment level for the same
+combination of blocking levels. The design is a square arrangement and that p treatments are denoted by the Latin letters A, B, C, . ; hence the name Latin
+square.
+
+- 1 treatments (p levels), 2 nuisance (p levels each)
+
+- $y_{ijk}=\mu+\alpha_i+\tau_j+\beta_k+\epsilon_{ij}$ for $i=1,\dots,p$, $j=1,\dots,p$ and $k=1,\dots,p$, where $\mu$ is overall mean, $\tau_j$ is the effect of the jth treatment, $\alpha_i$ is the row effect, $\beta_k$ is the  column effect.
+
+- $H_o: \tau_1=\dots=\tau_p=0$, use F test where $F_0~F_{p-1,(p-2)(p-1)}$
+
+
+## Greeco-Latin Square Design
+
+- Key: one treatment, three blocks with all same levels.
+
+- Latin Square Design + One more nuisance factor with p levels.
+
+- $y_{ijkl}=\mu+\theta_i+\tau_j+\omega_k+\psi_l+\epsilon_{ijk}$ where $i,j,k,l=1\dots p$.
+
+- $H_o: \tau_1=\dots=\tau_p=0$, use F test where $F_0~F_{p-1,(p-3)(p-1)}$
+
+---
+
+#### R: Generate Latin Square Design Structure
+
+\ 
+
+```{r}
+library(agricolae)
+T1<-c("A","B","C","D")
+T2<-c("a","b","c","d")
+design.graeco(T1,T2)$sketch
+```
+
+---
+
+#### R: ANOVA and testing
+
+\ 
+
+```{r}
+row <- c(rep(1,5),rep(2,5),rep(3,5),rep(4,5),rep(5,5))
+column <-c(rep(1:5,5))
+Latin <- c("A","B","C","D","E","B","C","D","E","A","C","D","E","A","B","D","E","A","B","C","E","A","B","C","D")
+Greek <- c("a","r","e","b","d","b","d","a","r","e","r","e","b","d","a","d","a","r","e","b","e","b","d","a","r")
+burning <- c(-1,-5,-6,-1,-1,-8,-1,5,2,11,-7,13,1,2,-4,1,6,1,-2,-3,-3,5,-5,4,6)
+data.frame(row=row,column=column, Latin=Latin, Greek=Greek, burning=burning)
+```
+
+#### R: Latin Square
+
+- Reject Null for the treatment
+
+\ 
+
+```{r}
+latinmodel <- aov(burning~factor(Latin)+factor(row)+factor(column))
+summary(latinmodel)
+```
+
+---
+
+#### R: Greeco-Latin Square
+
+- Reject Null for the treatment
+
+\ 
+
+```{r}
+glmodel <- aov(burning~factor(Latin)+factor(row)+factor(column)+factor(Greek))
+summary(glmodel)
+```
+
+\newpage
+
+## Balanced Incomplete Design
+
+- Key: Cannot run all combinations, one treatment, one block.
+
+- Sometimes we may not be able to run all the treatment combinations in each block for randomized block design experiments. A balanced incomplete block design BIBD) is an incomplete block design in which any two treatments appear together an equal number of times.
+
+- "a" treatments and "b" blcosk. Each block contain "k" treatments that each treatments occurs "r" times. Thus, N=ar=bk. k < a. Each pair of treatments occurs together the same number of times in total (Check this via $\lambda = \frac{r(k-1)}{a-1}$ that must be an integer.)
+
+- $y_{ij}=\mu+\tau_i+\beta_j+\epsilon_{ij}$ where $i=1\dots a$, $j=1\dots,b$.
+
+- Again, use F test (search ANOVA online, it's easier...)
+
+---
+
+#### R: BIBD structure
+
+- Num. of treatment a = 4
+
+- Num. of block b = 6
+
+- Num. of treatment / block k = 2
+
+- Num. of replication / treatment r = 3
+
+- $\lambda$ = 1
+
+
+\ 
+
+```{r}
+require(crossdes)
+set.seed(1)
+find.BIB(4, 6, 2)
+isGYD(find.BIB(4, 6, 2))
+lam = 3*1/3
+lam
+```
+
+\newpage
+
+#### R: BIBD example
+
+- Make sure to put block first, or it's a wrong model. you should be sure to put the "treatment factor" after all "nuisance factors" in the aov model.
+
+\ 
+
+```{r}
+time <- c(73,74,71,75,67,72,73,75,68,75,72,75)
+treatment <- c(rep(1,3),rep(2,3),rep(3,3),rep(4,3))
+block <- c(1,2,4,2,3,4,1,2,3,1,3,4)
+data.frame(treatment=treatment,block=block, time=time)
+
+# correct model
+bibdmodel <- aov(time~factor(block)+factor(treatment))
+summary(bibdmodel)
+
+# incorrect model
+bibdmodel_wrong <- aov(time~factor(treatment)+factor(block))
+summary(bibdmodel_wrong)
+```
+
+\newpage
+
+## Factorial Design with no blocking
+
+- Key: More than one treatments and their interactions. 
+
+- In many scientific investigations, the interest lies in the study of effects of two or more factors simultaneously f actorial designs are most commonly used for this type of investigation.
+
+- Factorial design means that in each complete trial or
+replicate of the experiment all possible combinations of the
+levels of the factors are investigated. For example, if there are "a"" levels of factor A and "b"" levels of factor B, each replicate contains all "ab"" treatment combinations
+
+- Main effect : the change in response produced by a change in the level of the factor. e.g. $A=\bar{Y_{A^+}}-\bar{Y_{A^-}}$ and $B=\bar{Y_{B^+}}-\bar{Y_{B^-}}$
+
+- Interaction effect: the average difference in these two A effects or $AB=((Y_{A^+B^+}-Y_{A^-B^+})+(Y_{A^+B^-}-Y_{A^-B^-}))/2$. The interaction is large in this experiment which is also indicated by the non parallel lines. no interaction as indicated by the parallel lines.
+
+- $y_{ijk}=\mu+\tau_i+\beta_j+(\tau\beta)_{ij}+\epsilon_{ijk}$ where $i=1\dots a$, $j=1\dots,b$, $k=1\dots,n$. Sum of $\tau$ and $\beta$ are 0, and so as the interaction terms w.r.t. i and j.
+
+- $H_o:\tau_1=\dots=\tau_a=0$ and $H_o:\beta_1=\dots=\beta_b=0$ and $H_o:(\tau\beta)_{ij}=0$
+
+- Again ANOVA and F-test. GOOGLE IT. Three F test possible.
+
+---
+
+#### R: Two factor factorial
+
+- 2:70-1:70 and 3:70-1:70 most significant.
+
+- some interaction in material type and temperture. Material 3 gives the best results.
+
+\  
+
+```{r}
+material <- c(rep(1,12), rep(2,12), rep(3,12))
+temp <- rep(c(rep(15,4),rep(70,4),rep(125,4)),3)
+response <- c(130,155,74,180,34,40,80,75,20,70,82,58,150,188,159,126,136,122,106,115,25,70,58,45,138,110,168,160,174,120,150,139,96,104,82,60)
+model1 <- aov(response~factor(material)*factor(temp))
+summary(model1)
+
+# Model Adequacy
+
+par(mfrow=c(1,2))
+plot(model1$residuals~model1$fitted.values)
+qqnorm(model1$residuals);qqline(model1$residuals)
+
+# Multiple comparison, pick the one thats most effective.
+TukeyHSD(model1)
+
+# interaction
+interaction.plot(material, temp, response)
+interaction.plot(temp, material, response)
+par(mfrow=c(1,1))
+```
+
+\newpage
+
+## General Factorial Design with blocking
+
+- Key: More than one treatments(A,B,C,..., where N=abc...) and their interactions, and blockings.
+
+- ANOVA again for testing effect and interactions. 
+
+- For two-factor case with blocking, $y_{ijk}=\mu+\tau_i+\beta_j+(\tau\beta)_{ij}+\delta_k+\epsilon_{ijk}$ where $i=1\dots a$, $j=1\dots,b$, $k=1\dots,n$. Sum of $\tau$ and $\beta$ are 0, and so as the interaction terms w.r.t. i and j. $\delta$ is for blocking. If blocking has k levels, this is called $2 \times k$ factorial design.
+
+- If the treatments including their combinations and two blockings have the same levels, this is not only a factorial design, but also just pxp latin square. e.g., 2 filter and 3 cutter = 6 combinations, 6 days, 6 operators. In this case, $y_{ijkl}=\mu+\alpha_i+\tau_j+\beta_k+(\tau\beta)_{jk}+\theta_l+\epsilon_{ijkl}$ where $i=1\dots 6$, $j=1,2,3$, $k=1,2$ $l=1\dots,6$ and $\tau,\beta$ are cutter and filter. $\alpha$ and $\theta$ are days and operators.
+
+---
+
+#### R: three factor factorial
+
+- As level increase, the average increase significantly. However, no interactions can be seen.
+
+\ 
+
+```{r}
+carb <- c(rep(10,8),rep(12,8),rep(14,8))
+pressure <- rep(c(rep(25,4),rep(30,4)),3)
+speed <- rep(c(200,200,250,250),6)
+response <- c(-3,-1,-1,0,-1,0,1,1,0,1,2,1,2,3,6,5,5,4,7,6,7,9,10,11)
+model <- aov(response~factor(carb)*factor(pressure)*factor(speed))
+summary(model)
+
+library(phia)
+miplot <- interactionMeans(model)
+plot(miplot)
+```
+
+\newpage
+
+#### R: two factor with one blocking
+
+- here, the order doesnt matter because of `*`
+
+\ 
+
+```{r}
+Clutter <- rep(1:3,8)
+Filter <- rep(c(1,1,1,2,2,2),4)
+Operator <-c(rep(1,6),rep(2,6),rep(3,6),rep(4,6))
+Response <- c(90,102,114,86,87,93,96,106,112,84,90,91,100,105,108,92,97,95,92,96,98,81,80,83)
+model1 <- aov(Response~factor(Clutter)*factor(Filter)+factor(Operator))
+summary(model1)
+
+model2 <- aov(Response~factor(Operator)+factor(Clutter)*factor(Filter))
+summary(model2)
+
+miplot1 <- interactionMeans(model1)
+plot(miplot1)
+```
+
+\newpage
+
+## 2^k Factorial Design
+
+- Key: k factors, each at only two levels.
+
+- Assumptions: factors are fixed, designed are completely randomized, the usual normality assumptions.
+
+- Particularly useful in early stages of experiments when many factors are likely to be investigated: It provides the smallest number of runs with which k factors can be studied in a complete factorial design. Since there are only two levels for each factor, we assume that the response is approximately linear over the range of the factor levels chosen.
+
+- $N=2^k\times r$, where r is the number of replicates for each treatment factors.
+
+- For $2^2$ design, we consider main effects. e.g. $A=\frac{1}{2}(\frac{a-(1)}{r}+\frac{ab-b}{r})$, $AB=\frac{1}{2}(\frac{ab-b}{r}-\frac{a-(1)}{r})$. If they are positive/negative, increase/decrease in means are yielded. if $AB$ is small, small interaction. Use ANOVA to see those main effects are significant.
+
+- $2^k$ factorial design can be expressed in regression model. $y=\beta_0+\beta_1x_1+\beta_2x_2+\epsilon$
+
+- For $2^3$ factorial design, $A=\frac{1}{4r}(a-(1)+ab-b+ac-c+abc-bc)$, $AB=\frac{1}{4r}(abc+ab+c+(1)-ac-bc-a-b)$, $ABC=\frac{1}{4r}(abc+a+b+c-ab-ac-bc-(1))$. $SS=\frac{Contrast^2}{8r}$, where $Contrast_{AB\dots K}=(a\pm1)(b\pm1)\dots(k\pm1)$ e.g. $Contrast_{AB}=(a-1)(b-1)(c+1)$.
+
+- $AB\dots K=\frac{2}{r2^k}(Contrast_{AB\dots K})$, $SS_{AB\dots K}=\frac{1}{r2^k}(Contrast_{AB\dots K})^2$
+
+
+- General $2^k$ factorial design has: ${k\choose2}$ two factor interactions, ${k\choose3}$ three factor interactions and so forth. Prodedure:
+
+1. Estimate factor effects and examine their signs and magnitudes : This gives the experimenter preliminary information regarding which factors and interactions may be important and in which directions these factors should be adjusted to improve the response.
+
+2. Form initial model: (a) If the design is replicated, fit the full model. (b) If there is no replication, form the model using a normal probability plot of the effects.
+
+3. Perform statistical testing : use the analysis of variance to formally test for the significance of main effects and interaction.
+
+4. Refine model : remove any nonsignificant variables from the full model.
+
+5. Analyze residuals : check for model adequacy and assumptions.
+
+6. Interpret results : include graphical analysis main effect or interaction plots.
+
+- Some problems that arise with a single replicate (r=1): We may be fitting a model to noise. If the response is highly variable, misleading conclusions may result from the experiment. Fitting the model results in zero degrees of freedom for error. 
+
+- That is, we cannot use ANOVA to test this. In stead, examine a Normal Probability plot of the estimates of the effects. All of the effects that lie along normal QQ plot line is negligible, whereas the large effects are far from the line.
+
+---
+
+#### R: 2^4 factorial design
+
+\ 
+
+```{r}
+A <- rep(c(-1,1),8)
+B <- rep(c(-1,-1,1,1),4)
+C <- rep(c(rep(-1,4),rep(1,4)),2)
+D <- c(rep(-1,8),rep(1,8))
+response <- c(45,71,48,65,68,60,80,65,43,100,45,104,75,86,70,96)
+model.sg <- aov(response~factor(A)*factor(B)*factor(C)*factor(D))
+summary(model.sg)
+```
+
+---
+
+#### Normal plot for effects
+
+\ 
+
+```{r}
+model.lm <- lm(response~A*B*C*D)
+effect <- 2*(coef(model.lm)[-1])
+effect
+qqnorm(effect)
+qqline(effect)
+```
+
+---
+
+#### Main/Interaction plots
+
+\ 
+
+```{r}
+library(gplots)
+par(mfrow=c(1,3))
+plotmeans(response~A,xlab="Factor A",ylab="Average Response", p=0, main="Main effect Plot",barcol="black")
+plotmeans(response~C,xlab="Factor A",ylab="Average Response", p=0, main="Main effect Plot",barcol="black")
+plotmeans(response~D,xlab="Factor A",ylab="Average Response", p=0, main="Main effect Plot",barcol="black")
+par(mfrow=c(1,1))
+```
+
+\newpage
+
+## 2^k Factorial Design with blockings (confoundings)
+
+- Key: k factors, each at only two levels and multiple blockings each two levels.
+
+- Look at the signs for each components of factorial main effects.Here, AB is confounded with blocks because the its signs and the number of blocks matches ( + for 1, - for 2). Typically confound the higest order interaction with blocks.
+
+|Treatments |I  | A | B | AB | Block |
+|-----------|---|---|---|----|-------|
+|(1)        |+  |-  | - | +  | 1     |
+|a          | + | + | - | -  | 2     |
+|b          | + | - | + | -  | 2     |
+|ab         | + | + | + | +  | 1     |
+
+---
+
+#### R: 2^4 with no blocking
+
+\ 
+
+```{r}
+A <- rep(c(-1,1),8)
+B <- rep(c(-1,-1,1,1),4)
+C <- rep(c(rep(-1,4),rep(1,4)),2)
+D <- c(rep(-1,8),rep(1,8))
+response <- c(45,71,48,65,68,60,80,65,43,100,45,104,75,86,70,96)
+model1 <- aov(response~factor(A)*factor(B)*factor(C)*factor(D))
+summary(model1)
+
+# effect estimated
+effect1 <- 2*coef(lm(response~A*B*C*D))[-1]
+effect1
+
+```
+
+---
+
+#### R: 2^4 with blocking
+
+- ANOVA does not print the ABCD interaction, since it is confounded with blocking. Also, the estimated
+block effect includes ABCD interaction effect.
+
+\ 
+
+```{r}
+# modification 1 : add a block #
+block <- A*B*C*D
+
+# modification 2 : responses in block 1 has -20 lower units than original
+response[block==1] <- response[block==1]-20 #modified
+
+model2 <- aov(response~factor(A)*factor(B)*factor(C)*factor(D)+factor(block))
+summary(model2)
+
+# Estimated effects
+effect2 <- 2*coef(lm(response~A*B*C*D+block))[-1]
+effect2
+
+# ANOVA for the final model (reduced model including only significant factors)
+model3 <- aov(response~factor(A)+factor(C)+factor(D)+factor(A)*factor(C)+factor(A)*factor(D)+factor(block))
+summary(model3)
+```
+
+\newpage
+
+
+
+## 2^{k-p} Fractional Factorial Design
+
+- Key: k factors, each at only two levels, but too many K's.
+
+- As the number of factors in a 2 k factorial design increases, the number of runs required for a complete replicate of the design rapidly outgrows the resources of most experimenters. Thus use fractional factorial design. Three properties:
+
+1. The sparsity of effects principle : When there are several variables, the process is likely to be driven primarily by some of the main effects and low order interactions.
+
+2. The projection property : Fractional factorial designs can be projected into stronger (larger ) designs in the subset of significant factors.
+
+3. Sequential experimentation : It is possible to combine the runs of two (or more) fractional factorials to resolve difficulties in interpretation.
+
+- The higest interaction that has the identical effect sign as the identity $I$ is called the generator, and for instance, if the signs for ABC is all plus and so as I, then $I=ABC$ is called the defining relation for our design.
+
+- Then, we have; $[A]=\frac{1}{2}(a-b-c+abc)$, $[B]=\frac{1}{2}(-a+b-c+abc)$, $[C]=\frac{1}{2}(-a-b+c+abc)$. Likewise, $[BC]=\frac{1}{2}(a-b-c+abc)$, $[AC]=\frac{1}{2}(-a+b-c+abc)$, $[AB]=\frac{1}{2}(-a-b+c+abc)$. Thus, $[A]=[BC], [B]=[AC], [C]=[AB]$. It is impossible to differentiate those. 
+
+- In fact, $[A]\rightarrow A+BC$, $[B]\rightarrow B+AC$, $[C]\rightarrow C+AB$
+
+- $A\cdot I = A\cdot ABC = A^2BC\rightarrow A=BC$
+
+- If we take the "other half", $[A]'\rightarrow A-BC$, $[B]'\rightarrow B-AC$, $[C]'\rightarrow C-AB$
+
+- An important property of a fractional design is its resolution or ability to separate main effects and low order interactions from one another. The resolution of the design is the minimum word length in the defining relation excluding (1). e.g. if I=ABC, the resolution is 3.
+
+- Resolution 3: Good for initial screening. The higher the resolution, the less restrictive the assumptions that are required regarding which interactions are negligible to obtain a unique interpretation of the results.
+
+
+
+
+
+
+\newpage
+
+# Computational Techniques
+
+## Standarization / Normalization
+
+\newpage
+
+## K-Fold Cross Validation
+
+- A method to validate the model and its parameters. MSE is highly variable measurement for the model. Thus, cross validation reduce this variablity and help us obtain the most stable MSE.
+
+- Devide the data set into K different parts. Remove the first part, fit a model using the rest of the parts, and test on this removed first part and take MSE. Repeat this procedure for all folds. At last, average all K different MSE and obtain the MSE for the model.
+
+- When $K=n$, it's called "Leace-One-Out Cross Validation".
+
+---
+
+#### R: CV to choose order of polynomial
+
+```{r}
+library(boot)
+set.seed(1)
+K = 5
+CV_MSE = rep(0,K)
+for(i in 1:K){
+  glm.fit = glm(Sepal.Width~poly(Sepal.Length,i), data=iris)
+  CV_MSE[i] = cv.glm(iris, glm.fit)$delta[1]
+}
+CV_MSE
+```
+
+
+\newpage
+
+#### R: Package "crossval"
+
+```{r}
+library(crossval)
+```
+
+\newpage
+
+## Bootstrap
+
+
+#### R: Obtain mean and CI using package "boot"
+
+\ 
+
+```{r}
+library(boot)
+set.seed(1)
+
+# Mean
+mean.fn = function(data, index){
+return(c(mean(data[index,1])))
+}
+mean_boot = boot(iris, mean.fn, R=1000)
+
+# CI
+
+CI_norm_boot = boot.ci(mean_boot, type = 'norm')
+CI_norm_boot$normal
+
+
+
+```
+
+
+\newpage
+
+# R Features
+
+## Basics
+
+## Functions
+
+\newpage
+
+### `I()` and `poly()` for polynomial regression
+
+- `I()` function simply grants `lm()` function to add higher order variables.
+
+- `poly()` function uses an orthogonal basis to fit polynomial regression. That is, the variables are linearly transformed into linearly independent set, thus no multicolinearity is present. Moreover, the statistics generated such as r^2 and resulting plots are the same as using `I()` functions. However, the coefficients generated are different hence it suffers from interpretations.
+
+---
+
+```{r}
+grids=seq(from=min(iris$Sepal.Length),to=max(iris$Sepal.Length), by=0.01)
+
+m_I = lm(Sepal.Width~Sepal.Length+I(Sepal.Length^2), data=iris)
+summary(m_I)
+pred = predict(m_I,newdata=list(Sepal.Length=grids),se=TRUE)
+plot(Sepal.Width~Sepal.Length, data=iris);lines(grids,pred$fit, lwd=2, col="blue")
+
+m_poly = lm(Sepal.Width~poly(Sepal.Length,2), data=iris)
+summary(m_poly)
+pred = predict(m_poly,newdata=list(Sepal.Length=grids),se=TRUE)
+plot(Sepal.Width~Sepal.Length, data=iris);lines(grids,pred$fit, lwd=2, col="blue")
+```
+
+\newpage
+
+### Normalization and Standarization
+
+### `apply()`, `sapply()`, `tapply()`, `lapply()`
+
+### Package: `dplyr`
+
+
+
+
+
+
