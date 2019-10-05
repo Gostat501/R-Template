@@ -4,7 +4,7 @@ The collection of the popular data visualization, data manipulation, machine lea
 
 Please check out the [template.pdf](https://github.com/Gostatistics/R-Template/blob/master/template.pdf)
 
-##### Some contents are crdited to professor Maria Cha, Miles Chen, and Akram Almohalwas at University of Calidornia, Los Angeles
+##### Some contents are crdited to professor Maria Cha, Miles Chen, and Akram Almohalwas at University of California, Los Angeles
 
 Parts of this document are still incomplete/inaccurate since I have been the only contributor to this document as of 10/2/2019...
 
